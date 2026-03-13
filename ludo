@@ -1,0 +1,289 @@
+#include <iostream>
+#include <vector>
+#include <iomanip>
+#include <cstdlib>
+#include <ctime>
+#include <limits>
+
+const int BOARD_SIZE = 15;
+
+// Códigos de cores ANSI
+const std::string RESET = "\033[0m";
+const std::string RED = "\033[31m";
+const std::string GREEN = "\033[32m";
+const std::string YELLOW = "\033[33m";
+const std::string BLUE = "\033[34m";
+const std::string WHITE = "\033[37m";
+const std::string CYAN = "\033[36m";
+
+// Função para inicializar o tabuleiro do Ludo
+std::vector<std::vector<char>> initializeLudoBoard() {
+    std::vector<std::vector<char>> board(BOARD_SIZE, std::vector<char>(BOARD_SIZE, ' '));
+
+    // Caminhos neutros verticais e horizontais
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        if (i != 7) { // Evita o centro
+            board[7][i] = '-';
+            board[i][7] = '|';
+        }
+    }
+
+    // Caminhos especiais para cada jogador
+    for (int i = 0; i < 6; ++i) {
+        board[6 - i][6] = '.'; // Caminho do jogador 1
+        board[6][6 - i] = '.';
+        board[8 + i][8] = '.'; // Caminho do jogador 3
+        board[8][8 + i] = '.';
+        board[8 + i][6] = '.'; // Caminho do jogador 2
+        board[8][6 - i] = '.';
+        board[6 - i][8] = '.'; // Caminho do jogador 4
+        board[6][8 + i] = '.';
+    }
+
+    // Definindo o centro e áreas de início
+    board[7][7] = '*'; // Centro
+
+    // Áreas de início para cada jogador
+    board[1][1] = '1';    // Área de início do Jogador 1
+    board[2][2] = '1';    // Área de início do Jogador 1
+    board[1][2] = '1';    // Área de início do Jogador 1
+    board[2][1] = '1';    // Área de início do Jogador 1
+    board[1][13] = '2';   // Área de início do Jogador 2
+    board[2][13] = '2';
+    board[1][12] = '2';
+    board[2][12] = '2';
+    board[13][1] = '3';   // Área de início do Jogador 3
+    board[13][2] = '3';
+    board[12][1] = '3';
+    board[12][2] = '3';
+    board[12][13] = '4';
+    board[13][13] = '4';  // Área de início do Jogador 4
+    board[12][12] = '4';
+    board[13][12] = '4';
+    return board;
+}
+
+// Função para imprimir o tabuleiro do Ludo
+void printBoard(const std::vector<std::vector<char>>& board) {
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            switch (board[i][j]) {
+                case '1': std::cout << RED << std::setw(2) << board[i][j] << RESET; break;
+                case '2': std::cout << GREEN << std::setw(2) << board[i][j] << RESET; break;
+                case '3': std::cout << YELLOW << std::setw(2) << board[i][j] << RESET; break;
+                case '4': std::cout << BLUE << std::setw(2) << board[i][j] << RESET; break;
+                case '-': case '|': std::cout << WHITE << std::setw(2) << board[i][j] << RESET; break;
+                case '*': std::cout << CYAN << std::setw(2) << board[i][j] << RESET; break;
+                default: std::cout << std::setw(2) << board[i][j]; break;
+            }
+        }
+        std::cout << std::endl;
+    }
+}
+
+// Função para rolar o dado
+int rollDice() {
+    return std::rand() % 6 + 1;
+}
+
+// Função para mudar a vez do jogador
+void changeTurn(int& currentPlayer, int numPlayers) {
+    currentPlayer = (currentPlayer % numPlayers) + 1; // Muda para o próximo jogador (de 1 a numPlayers)
+}
+
+// Função para exibir a vez do jogador atual
+void displayCurrentPlayer(int currentPlayer, const std::vector<std::string>& playerNames) {
+    std::cout << playerNames[currentPlayer - 1] << ", é sua vez de jogar." << std::endl;
+}
+
+// Função para mover uma peça no tabuleiro
+void movePieceOnBoard(int currentPlayer, std::vector<std::vector<char>>& board, int diceResult) {
+    std::vector<std::pair<int, int>> playerPieces;
+
+    // Encontrar todas as peças do jogador atual no tabuleiro
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            if (board[i][j] == '0' + currentPlayer) {
+                playerPieces.emplace_back(i, j);
+            }
+        }
+    }
+
+    if (playerPieces.empty()) {
+        std::cerr << "Erro: Nenhuma peça em jogo para mover." << std::endl;
+        return;
+    }
+
+    std::cout << "Escolha uma peça para mover:" << std::endl;
+    for (size_t i = 0; i < playerPieces.size(); ++i) {
+        std::cout << i + 1 << ". [" << playerPieces[i].first << "][" << playerPieces[i].second << "]" << std::endl;
+    }
+
+    int pieceIndex;
+    std::cin >> pieceIndex;
+
+    if (pieceIndex < 1 || pieceIndex > playerPieces.size()) {
+        std::cerr << "Erro: Escolha inválida." << std::endl;
+        return;
+    }
+
+    int currentRow = playerPieces[pieceIndex - 1].first;
+    int currentCol = playerPieces[pieceIndex - 1].second;
+
+    // Movimentar a peça conforme o valor do dado
+    for (int i = 0; i < diceResult; ++i) {
+        // Exemplo de lógica para mover a peça (você deve ajustar conforme as regras do Ludo)
+        if (currentRow == 7 && currentCol < 7) {
+            currentCol++;
+        } else if (currentRow < 7 && currentCol == 7) {
+            currentRow++;
+        } else if (currentRow == 7 && currentCol > 7) {
+            currentCol--;
+        } else if (currentRow > 7 && currentCol == 7) {
+            currentRow--;
+        }
+        // Adicione a lógica para outros caminhos e jogadores aqui
+    }
+
+    if (board[currentRow][currentCol] == ' ' || board[currentRow][currentCol] == '.') {
+        board[playerPieces[pieceIndex - 1].first][playerPieces[pieceIndex - 1].second] = ' ';
+        board[currentRow][currentCol] = '0' + currentPlayer;
+    } else {
+        std::cerr << "Erro: Movimento inválido ou posição ocupada." << std::endl;
+    }
+}
+
+// Função para mover uma peça da base para o tabuleiro
+void movePieceFromBase(int currentPlayer, std::vector<std::vector<char>>& board, int diceResult) {
+    int targetRow = 0, targetCol = 0;
+
+    // Verificar se o jogador tirou um 6 para sair da base
+    if (diceResult != 6) {
+        std::cerr << "Erro: Você precisa tirar um 6 para sair da base." << std::endl;
+        return;
+    }
+
+    // Perguntar ao jogador se ele quer mover um peão em jogo ou tirar um novo peão da base
+    std::cout << "Jogador " << currentPlayer << ", escolha uma opção:" << std::endl;
+    std::cout << "1. Mover um peão em jogo." << std::endl;
+    std::cout << "2. Tirar um novo peão da base." << std::endl;
+    int option;
+    std::cin >> option;
+
+    switch (option) {
+        case 1:
+            movePieceOnBoard(currentPlayer, board, diceResult);
+            return;
+        case 2:
+            // Colocar um novo peão na área de início correspondente ao jogador
+            if (currentPlayer == 1) {
+                targetRow = 2;
+                targetCol = 6;
+            } else if (currentPlayer == 2) {
+                targetRow = 6;
+                targetCol = 12;
+            } else if (currentPlayer == 3) {
+                targetRow = 8;
+                targetCol = 2;
+            } else if (currentPlayer == 4) {
+                targetRow = 12;
+                targetCol = 8;
+            }
+            break;
+        default:
+            std::cerr << "Opção inválida. Escolha 1 ou 2." << std::endl;
+            return;
+    }
+
+    // Verificar se a posição alvo está fora do tabuleiro
+    if (targetRow < 0 || targetRow >= BOARD_SIZE || targetCol < 0 || targetCol >= BOARD_SIZE) {
+        std::cerr << "Erro: Movimento inválido!" << std::endl;
+        return;
+    }
+
+    // Verificar se a posição alvo está ocupada
+    if (board[targetRow][targetCol] != '.') {
+        std::cerr << "Erro: A posição alvo está ocupada!" << std::endl;
+        return;
+    }
+
+    // Mover a peça da base para a posição alvo
+    board[targetRow][targetCol] = '0' + currentPlayer;
+    std::cout << "Jogador " << currentPlayer << " moveu uma peça para [" << targetRow << "][" << targetCol << "]." << std::endl;
+}
+
+// Função para verificar se um jogador venceu
+bool playerWon(const std::vector<std::vector<char>>& board, int player) {
+    return board[7][7] == '0' + player;
+}
+
+// Função para exibir a tela de login
+void login(std::vector<std::string>& playerNames) {
+    int numPlayers;
+
+    do {
+        std::cout << "Digite o número de jogadores (2 a 4): ";
+        std::cin >> numPlayers;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    } while (numPlayers < 2 || numPlayers > 4);
+
+    for (int i = 1; i <= numPlayers; ++i) {
+        std::string playerName;
+        std::cout << "Insira o nome do Jogador " << i << ": ";
+        std::getline(std::cin, playerName);
+        playerNames.push_back(playerName);
+    }
+}
+
+int main() {
+    // Mensagem de boas-vindas e solicitação para começar o jogo
+    std::cout << "Bem-vindo ao Jogo do Ludo!" << std::endl;
+    std::cout << "Digite 'Start' para começar o jogo: ";
+
+    std::string startCommand;
+    std::getline(std::cin, startCommand);
+
+    if (startCommand != "Start") {
+        std::cout << "Comando inválido. O jogo será encerrado." << std::endl;
+        return 0;
+    }
+
+    // Inicializar o gerador de números aleatórios com a hora atual
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
+    int currentPlayer = 1;
+    std::vector<std::vector<char>> ludoBoard = initializeLudoBoard();
+    std::vector<std::string> playerNames;
+
+    // Exibir a tela de login
+    login(playerNames);
+    int numPlayers = playerNames.size();
+
+    // Loop principal do jogo
+    while (true) {
+        // Imprimir tabuleiro e exibir jogador atual
+        printBoard(ludoBoard);
+        displayCurrentPlayer(currentPlayer, playerNames);
+
+        // Simular rolar o dado
+        std::cout << "Pressione Enter para rolar o dado..." << std::endl;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        int diceResult = rollDice();
+        
+        std::cout << "O dado rolou: " << diceResult << std::endl;
+
+        // Mover peça da base para o tabuleiro se tirar um 6 ou mover uma peça em jogo
+        movePieceFromBase(currentPlayer, ludoBoard, diceResult);
+
+        // Verificar se o jogador atual venceu
+        if (playerWon(ludoBoard, currentPlayer)) {
+            std::cout << playerNames[currentPlayer - 1] << " venceu!" << std::endl;
+            break;
+        }
+
+        // Mudar para o próximo jogador
+        changeTurn(currentPlayer, numPlayers);
+    }
+
+    return 0;
+}
